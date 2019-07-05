@@ -24,56 +24,20 @@ class ImageBatchVC: UIViewController, UICollectionViewDelegate, UICollectionView
     var photoResultsController:NSFetchedResultsController<Photo>!
     let delegate = UIApplication.shared.delegate as! AppDelegate
     var pages = 0
-    var urlCount = 0
-    var tag = ""
+    var tagString = ""
+    var currentTag:Tag!
+    var photoToAnnotate:Photo!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         collectionView.delegate = self
         collectionView.dataSource = self
-        
-        Flickr.requestImageResources(tag: "bee", pageNumber: 0) { (flickrSearchResult, error) in
-            guard error == nil, let flickrSearchResult = flickrSearchResult else {
-                print("RIRL error", error)
-                return
-            }
-            self.flickrSearchResult = flickrSearchResult
-            DispatchQueue.main.async {
-                self.urlCount = 5
-                self.collectionView.reloadData()
+        print("current tag", currentTag)
+    }
 
-            }
-            //self.collectionView.reloadData()
-        }
-    }
-    
-    func requestImageResourceLocations(completion: @escaping ((FlickrSearchResult?, Error?) -> Void)) {
-        let success = 200...299
-        let url = URL(string: "https://www.flickr.com/services/rest/?method=flickr.photos.search&api_key=e79e37db8c17fb8f7b009ea28a20cb4c&tags=bees&format=json&")
-        let task = Flickr.buildDataTask(url: url!) { (data, response, error) in
-            guard error == nil, let data = data else {
-                completion(nil, error!)
-                return
-            }
-            guard let statusCode = (response as? HTTPURLResponse)?.statusCode, success.contains(statusCode) else {
-                completion(nil, ConnectionError.connectionFailure)
-                return
-            }
-            let flickrSearchDecoder = JSONDecoder()
-            do {
-                let flickrResponseData = try flickrSearchDecoder.decode(FlickrSearchResult.self, from: data as! Data)
-                completion(flickrResponseData, nil)
-            } catch {
-                completion(nil, error)
-            }
-        }
-        task.resume()
-    }
-    
-    
     override func viewWillAppear(_ animated: Bool) {
         getFlickrPhotos()
-        //buildFetchRequest()
+        buildFetchRequest()
 
     }
     
@@ -85,7 +49,8 @@ class ImageBatchVC: UIViewController, UICollectionViewDelegate, UICollectionView
                 guard let entity = NSEntityDescription.entity(forEntityName: "Photo", in: DataController.shared.mainContext) else {return}
                 let photo = Photo(entity: entity, insertInto: DataController.shared.mainContext)
                 photo.url = url.absoluteString
-//                currentPin.addToPhoto(photo)
+                photo.name = currentTag.name
+                currentTag.addToPhoto(photo)
                 try? DataController.shared.mainContext.save()
             }
         }
@@ -93,7 +58,8 @@ class ImageBatchVC: UIViewController, UICollectionViewDelegate, UICollectionView
     func buildFetchRequest() {
         let fetchRequest = NSFetchRequest<Photo>(entityName: "Photo")
         fetchRequest.sortDescriptors = []
-        fetchRequest.predicate = NSPredicate(format: "tag == %@", tag)
+        fetchRequest.predicate = NSPredicate(format: "name == %@", currentTag.name!)
+        print("tag string", tagString)
         photoResultsController = NSFetchedResultsController(
             fetchRequest: fetchRequest,
             managedObjectContext: DataController.shared.mainContext,
@@ -103,20 +69,74 @@ class ImageBatchVC: UIViewController, UICollectionViewDelegate, UICollectionView
         photoResultsController!.delegate = self
         do {
             try photoResultsController!.performFetch()
-            print(photoResultsController.fetchedObjects)
+            print("photoresult cnt", photoResultsController.fetchedObjects!.count)
         } catch {
             displayAlert(error)
         }
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return urlCount
-    }
+        let number = photoResultsController?.sections?[section].numberOfObjects ?? 0
+        print("collection view count" , number)
+        if number == 0 && (flickrSearchResult?.photos?.photo.count) == 0 {
+            self.collectionView.setEmptyMessage("No Images")
+        } else {
+            self.collectionView.restore()
+        }
+        return number    }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath) as! ImageBatchCell
-        cell.imageView.kf.setImage(with: imagerUrls![indexPath.row])
+
+        print("cell formation")
+        guard let photo = photoResultsController?.object(at: indexPath) else {return cell}
+        guard let photoUrl = photo.url else {return cell}
+        guard let photoData = photo.data else {
+            
+            print(")//Photo's data is nil so download", photo)
+            Flickr.requestImage(urlString: photoUrl) { (image, error) in
+                guard error == nil, let image = image else {
+                    self.displayAlert(error ?? ConnectionError.connectionFailure)
+                    return
+                }
+                DispatchQueue.main.async {
+                    guard let imageData = image.jpegData(compressionQuality: 1.0) else { return }
+                    photo.data = imageData
+                    do {
+                        try DataController.shared.mainContext.save()
+                    } catch {
+                        self.displayAlert(error)
+                    }
+                    cell.imageView.image = image
+                    cell.photo = photo
+                    cell.activityIndicator.stopAnimating()
+                    cell.activityIndicator.isHidden = true
+                }
+            }
+            return cell
+        }
+        print("//Load from stored data", photo)
+        cell.imageView.image = UIImage(data: photoData)
+        cell.photo = photo
+        cell.activityIndicator.stopAnimating()
+        cell.activityIndicator.isHidden = true
         return cell
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        switch segue.identifier {
+        case Constants.Segues.editorSegue:
+            let vC = segue.destination as! EditorVC
+            vC.passedPhoto = photoToAnnotate
+        default:
+            break
+        }
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let selectedCell = collectionView.cellForItem(at: indexPath) as! ImageBatchCell
+        photoToAnnotate = selectedCell.photo
+        performSegue(withIdentifier: Constants.Segues.editorSegue, sender: self)
     }
 }
 
@@ -142,5 +162,24 @@ extension UIViewController {
         let alertInfo = UIAlertController(title: "Error", message: error.localizedDescription, preferredStyle: .actionSheet)
         alertInfo.addAction(UIAlertAction(title: "Ok", style: .default, handler: nil))
         self.present(alertInfo, animated: true, completion: nil)
+    }
+}
+
+//Modified from Reply: Samman Bikram Thapa
+//https://stackoverflow.com/questions/43772984/how-to-show-a-message-when-collection-view-is-empty
+extension UICollectionView {
+    
+    func setEmptyMessage(_ message: String) {
+        let messageLabel = UILabel(frame: CGRect(x: 0, y: 0, width: self.bounds.size.width, height: self.bounds.size.height))
+        messageLabel.text = message
+        messageLabel.textColor = .black
+        messageLabel.numberOfLines = 0
+        messageLabel.textAlignment = .center
+        messageLabel.sizeToFit()
+        self.backgroundView = messageLabel
+    }
+    
+    func restore() {
+        self.backgroundView = nil
     }
 }

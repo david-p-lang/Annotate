@@ -8,32 +8,6 @@
 
 import UIKit
 
-//[
-//    {
-//        "image": "image1.jpg",
-//        "annotations": [
-//        {
-//        "label": "carrots",
-//        "coordinates": {
-//        "x": 120
-//        "y": 164
-//        "width": 230
-//        "height": 119
-//        }
-//        },
-//        {
-//        "label": "orange",
-//        "coordinates": {
-//        "x": 230
-//        "y": 321
-//        "width": 50
-//        "height": 50
-//        }
-//        }
-//        ]
-//    }
-//]
-
 
 struct ImageInfo : Codable {
     let image: String
@@ -54,6 +28,8 @@ struct Coordinates: Codable {
 
 
 class EditorVC: UIViewController {
+    
+    var passedPhoto:Photo!
 
     @IBOutlet weak var imageView: UIImageView!
     var objectSelectionTap = UILongPressGestureRecognizer()
@@ -67,16 +43,23 @@ class EditorVC: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        var currentImage = UIImage(named: "img")
-        print(currentImage?.size)
-        currentImage = currentImage?.resized(toWidth: self.view.frame.maxX)
-        print(currentImage?.size)
+        print("passed photo", passedPhoto.data)
+        var currentImage = UIImage(data: passedPhoto.data!)
+        print("currentImage", currentImage)
+        print(currentImage!.size)
+        currentImage = currentImage!.resized(toWidth: self.view.frame.maxX)
+        print(currentImage!.size)
         imageView.image = currentImage
 
         objectSelectionTap = UILongPressGestureRecognizer(target: self, action: #selector(EditorVC.tap(sender:)))
-        // Do any additional setup after loading the view.
+        
         self.view.addGestureRecognizer(objectSelectionTap)
+        print("added gesture recognizer")
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        self.navigationController?.isNavigationBarHidden = false
+
     }
     
     fileprivate func showGestures(_ location: CGPoint, radius: CGFloat, subLayer: CAShapeLayer) {
@@ -119,8 +102,8 @@ class EditorVC: UIViewController {
         
         switch sender.state {
         case .began:
-//            print("began gesture")
-//            print(location)
+            print("began gesture")
+            print(location)
             
             showGestures(location, radius: 75, subLayer: reticleOuter)
             showGestures(location, radius: 3, subLayer: reticleInner)

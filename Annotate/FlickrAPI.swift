@@ -9,7 +9,7 @@
 import Foundation
 import UIKit
 
-class Constants {
+struct Constants {
     static let latitudeKey = "latitude"
     static let longitudeKey = "longitude"
     static let latKey = "lat"
@@ -21,6 +21,11 @@ class Constants {
     static let albumSegue = "albumSegue"
     static let flickerCell = "flickrCell"
     static let apiKey = "e79e37db8c17fb8f7b009ea28a20cb4c"
+    
+    struct Segues {
+        static let flickrSearchSegue = "flickrSearchSegue"
+        static let editorSegue = "editorSegue"
+    }
 }
 
 struct FlickrSearchResult: Codable {

@@ -14,4 +14,6 @@ class ImageBatchCell: UICollectionViewCell {
     
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
     
+    weak var photo:Photo!
+    
 }
