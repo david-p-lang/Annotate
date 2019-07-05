@@ -12,7 +12,7 @@ import CoreData
 class DataController {
     
     let persistantContainer: NSPersistentContainer
-    static let shared = DataController(name: "Tour")
+    static let shared = DataController(name: "Object")
     var mainContext: NSManagedObjectContext {return persistantContainer.viewContext}
     
     //Set the persistent container which encapsulates the coredata stack

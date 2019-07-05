@@ -20,7 +20,7 @@ class Constants {
     static let responseFormat = "json"
     static let albumSegue = "albumSegue"
     static let flickerCell = "flickrCell"
-    static let apiKey = ""
+    static let apiKey = "e79e37db8c17fb8f7b009ea28a20cb4c"
 }
 
 struct FlickrSearchResult: Codable {
@@ -33,7 +33,7 @@ struct FlickrPagesResult: Codable {
     let page: Int
     let pages: Int
     let perpage: Int
-    let total: String
+    let total: Int
 }
 
 struct FlickrUrl: Codable {
@@ -66,14 +66,11 @@ class Flickr {
     }
     
     /// Create a URLComponent and array of query items and return URL from the component as an optional
-    class func buildLocationQuery(_ coord: [String:Double], pageNumber: Int) -> URL? {
-        let latString = String(coord[Constants.latKey] ?? 0)
-        let lonString = String(coord[Constants.lonKey] ?? 0)
-        let queryItemLatitude = URLQueryItem(name: "lat", value: latString)
-        let queryItemLongitude = URLQueryItem(name: "lon", value: lonString)
+    class func buildTagQuery(_ tag: String, pageNumber: Int = 0) -> URL? {
+        let queryItemTag = URLQueryItem(name: "tag", value: tag)
         let queryItemPerPage = URLQueryItem(name: "per_page", value: Constants.perPage)
         let queryItemPage = URLQueryItem(name: "page", value: "\(pageNumber)")
-        let queryItemMethod = URLQueryItem(name: "method", value: "flickr.photos.search")
+        let queryItemMethod = URLQueryItem(name: "method", value: "flickr.photos.getRecent")
         let queryItemAPIKey = URLQueryItem(name: "api_key", value: Constants.apiKey)
         let queryItemFormat = URLQueryItem(name: "format", value: Constants.responseFormat)
         let queryItemCallback = URLQueryItem(name: "nojsoncallback", value: "1")
@@ -81,19 +78,21 @@ class Flickr {
         components.scheme = "https"
         components.host = "api.flickr.com"
         components.path = "/services/rest"
-        components.queryItems = [queryItemMethod, queryItemAPIKey, queryItemLongitude, queryItemLatitude, queryItemFormat, queryItemPerPage, queryItemPage, queryItemCallback]
+        components.queryItems = [queryItemMethod, queryItemAPIKey, queryItemTag, queryItemFormat, queryItemPerPage, queryItemPage, queryItemCallback]
+        print(components.string)
         return components.url
     }
     
-    /// Given a set coordinates request data on the images which is then used to build queries for single images
+    /// Given a tag, request data on the associated images,
+    /// this data is then used to build queries for single images
     ///
     /// - Parameters:
     ///   - coord: latitude and longitude as double
     ///   - pageNumber: for refreshing data with a randomized page number
     ///   - completion: FlickrSearchResults or error as optionals
-    class func requestImageResourceLocations(coord: [String:Double], pageNumber: Int, completion: @escaping ((FlickrSearchResult?, Error?) -> Void)) {
+    class func requestImageResources(tag: String, pageNumber: Int = 0, completion: @escaping ((FlickrSearchResult?, Error?) -> Void)) {
         let success = 200...299
-        guard let url = buildLocationQuery(coord, pageNumber: pageNumber) else {return}
+        guard let url = buildTagQuery(tag, pageNumber: pageNumber) else {return}
         let task = buildDataTask(url: url) { (data, response, error) in
             guard error == nil, let data = data else {
                 completion(nil, error!)
