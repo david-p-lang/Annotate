@@ -83,7 +83,9 @@ class ImageBatchVC: UIViewController, UICollectionViewDelegate, UICollectionView
         } else {
             self.collectionView.restore()
         }
-        return number    }
+        return number
+        
+    }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath) as! ImageBatchCell

@@ -5,7 +5,6 @@
         <relationship name="tag" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Tag" inverseName="collection" inverseEntity="Tag" syncable="YES"/>
     </entity>
     <entity name="Coordinate" representedClassName="Coordinate" syncable="YES" codeGenerationType="class">
-        <attribute name="attribute" optional="YES" syncable="YES"/>
         <attribute name="height" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
         <attribute name="width" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
         <attribute name="x" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
@@ -32,7 +31,7 @@
         <relationship name="photo" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Photo" inverseName="tag" inverseEntity="Photo" syncable="YES"/>
     </entity>
     <elements>
-        <element name="Coordinate" positionX="-178.97265625" positionY="-2.27734375" width="128" height="150"/>
+        <element name="Coordinate" positionX="-178.97265625" positionY="-2.27734375" width="128" height="133"/>
         <element name="Label" positionX="61.59765625" positionY="144.14453125" width="128" height="88"/>
         <element name="Photo" positionX="-177.8046875" positionY="206.6875" width="128" height="135"/>
         <element name="Tag" positionX="73.41015625" positionY="252.0234375" width="128" height="88"/>
